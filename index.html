@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Addition Game for Kids</title>
+    <style>
+        /* General Styles */
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        #startButton, .answerButton, .modeButton, #mainMenuButton {
+            padding: 20px 40px;
+            font-size: 24px;
+            margin: 15px;
+            cursor: pointer;
+        }
+        #question {
+            font-size: 72px;
+            margin-top: 20px;
+            line-height: 1.2;
+        }
+        #timer, #slowestQuestions {
+            font-size: 24px;
+            margin-top: 20px;
+            text-align: left;
+            display: inline-block;
+            max-width: 800px;
+        }
+        .hidden {
+            display: none;
+        }
+        #question .number {
+            display: block;
+        }
+        #question .line {
+            border-top: 3px solid #000;
+            width: 200px;
+            margin: 0 auto;
+        }
+        #answers {
+            margin-top: 20px;
+        }
+        #modeSelection {
+            margin-top: 50px;
+        }
+        #message {
+            position: fixed;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            color: red;
+            display: none;
+        }
+        /* Rainbow Progress Bar Styles */
+        #progressBarContainer {
+            position: relative;
+            width: 80%;
+            height: 30px;
+            margin: 40px auto 0;
+            background-color: #ddd;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        #progressBar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
+            border-radius: 15px;
+            transition: width 0.5s;
+        }
+        /* Highlight Missed Questions */
+        .missed {
+            color: red;
+        }
+        /* GIF Styling */
+        #funnyGif {
+            margin-top: 20px;
+        }
+        #funnyGif img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Addition Practice Game</h1>
+
+    <div id="modeSelection">
+        <h2>Select Game Mode:</h2>
+        <button class="modeButton" data-mode="15Random">15 Random Questions</button>
+        <button class="modeButton" data-mode="6sRandom">6's Random</button>
+        <button class="modeButton" data-mode="7sRandom">7's Random</button>
+        <button class="modeButton" data-mode="8sRandom">8's Random</button>
+        <button class="modeButton" data-mode="9sRandom">9's Random</button>
+        <button class="modeButton" data-mode="allPossible">All Possible Sums (0-10)</button>
+    </div>
+
+    <div id="gameArea" class="hidden">
+        <div id="question"></div>
+        <div id="answers">
+            <button class="answerButton"></button>
+            <button class="answerButton"></button>
+            <button class="answerButton"></button>
+            <button class="answerButton"></button>
+        </div>
+        <div id="progressBarContainer">
+            <div id="progressBar"></div>
+        </div>
+    </div>
+
+    <!-- Moved the GIF to appear before the timer and results -->
+    <div id="funnyGif" class="hidden">
+        <img id="gifImage" src="" alt="Funny Animal GIF">
+    </div>
+
+    <div id="timer" class="hidden"></div>
+    <div id="slowestQuestions" class="hidden"></div>
+    <button id="mainMenuButton" class="hidden">Back to Main Menu</button>
+    <div id="message">Try Again!</div>
+
+    <script>
+        const modeButtons = document.querySelectorAll('.modeButton');
+        const gameArea = document.getElementById('gameArea');
+        const questionElement = document.getElementById('question');
+        const answerButtons = document.querySelectorAll('.answerButton');
+        const timerElement = document.getElementById('timer');
+        const slowestQuestionsElement = document.getElementById('slowestQuestions');
+        const messageElement = document.getElementById('message');
+        const modeSelection = document.getElementById('modeSelection');
+        const progressBar = document.getElementById('progressBar');
+        const mainMenuButton = document.getElementById('mainMenuButton');
+        const funnyGif = document.getElementById('funnyGif');
+        const gifImage = document.getElementById('gifImage');
+
+        let problems = [];
+        let currentProblemIndex = 0;
+        let startTime;
+        let questionStartTime;
+        let totalTimeTaken = 0;
+        let responseTimes = [];
+        let gameMode = '';
+        let incorrectProblems = [];
+
+        // Array of Funny GIF URLs provided by you
+        const funnyGifs = [
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOW8xZWw1aWZ0d2tmbHQ3MTczdWhuZDQzZzByNGQ1NnFvdmNobjk3diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/WXB88TeARFVvi/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOGUzNmJoc3VwY2trNG53MzJ2aW5wYXZsMmtva2x3Y3Z0NzB2cW1waSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/wW95fEq09hOI8/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExdDZ3dzM2YjJwd3N1bXpsM3RyazRmcmRleXBpdTQ5bDlheTZ2em50NSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/GFHJXPCoVQEec/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXNsNjRkNXplaHM1NzRpNmFnejhneGxhbmVuM3VubmFudXFybHd3ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/G3773sSDJHHy0/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXdldmpiemd0ajlpaTBjNGgyY3VnZ3l0MTFlbmlheHc5aWllZWRkYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tBxyh2hbwMiqc/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExMnNrdGtkMmRzZTdlMnI5dW10NG9iYTZxa3czMGpyaGN3d2l5OHlnaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/HMSLfCl5BsXoQ/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExdG8zZHVyd3J5aGI3ZHJ6cm9xeml1cms2d2w1dmJ2MDRoZXd2cTV2bSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/jTnGaiuxvvDNK/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExdnVwNXl1c2VwNGxidjZkazF6YjZ3dXh5eWNnN2pjYmpkYzJjeml1eiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ccrcr48B8yhAQ/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExY2xneGx3eHlsdXU0enk3ZHBrNWQyZGJ5MmlkNHJlZzE5bGQ5NW1mZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/XNdoIMwndQfqE/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExbjN6N2RtdnZ3emdpbGFkNHRvYTQxdGEwbnNtZHhtcDgyMjNrNXJlbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/5Vy3WpDbXXMze/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExd3dhNTdlcnlobGFzOTc3dGphOXRrbWF6Y3EzYzB1dmptOHkxZHdrcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/G0oBD5WsPcWjK/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWo4aTN4Y3RhdHh1MHh4bTh3aHh3OWdsbzY0ZTJzNWIzM3J4MGR1bCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6bAZXey5wNzBC/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExdXltd3loYWl4ZG0wMmM0ZmJhaTlsc2ZhNmtuZWYycnljZGc1dDFzMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tVmthN5Mf8lGg/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOXRzc2Y5M3Fnb3djMmczbGo4ams1OXVnNGh1c2Yzd3V0N3d6YTBnYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/VIcgtjYlDLfkk/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExaGQ3ZHN4OHNrNTl2bGw4ZXJqd3Vtc3dubmc2eTg1Zmo2MWprcnR5ZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/KjqnOCVXbIkiA/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmRzb3JuYXNuMnpzc2tpYW45cTYwOWowbHJuYmhzODdmbDVpa3JwMCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9dg/Ml29MtdIRgWnoWgLbE/giphy.gif',
+            // Add more GIF URLs here
+        ];
+
+        modeButtons.forEach(button => {
+            button.addEventListener('click', () => selectMode(button.getAttribute('data-mode')));
+        });
+
+        function selectMode(mode) {
+            gameMode = mode;
+            modeSelection.classList.add('hidden');
+            startGame();
+        }
+
+        function startGame() {
+            gameArea.classList.remove('hidden');
+            timerElement.classList.add('hidden');
+            slowestQuestionsElement.classList.add('hidden');
+            mainMenuButton.classList.add('hidden');
+            funnyGif.classList.add('hidden');
+            messageElement.style.display = 'none';
+            problems = generateProblems(gameMode);
+            currentProblemIndex = 0;
+            totalTimeTaken = 0;
+            responseTimes = [];
+            incorrectProblems = [];
+            startTime = new Date();
+            updateProgressBar();
+            nextQuestion();
+        }
+
+        function generateProblems(mode) {
+            let problemSet = new Set();
+            if (mode === '15Random') {
+                // Generate 15 unique random problems with numbers from 0 to 10
+                while (problemSet.size < 15) {
+                    let num1 = Math.floor(Math.random() * 11);
+                    let num2 = Math.floor(Math.random() * 11);
+                    let key = num1 <= num2 ? `${num1}+${num2}` : `${num2}+${num1}`;
+                    problemSet.add(key);
+                }
+            } else if (mode === '6sRandom' || mode === '7sRandom' || mode === '8sRandom' || mode === '9sRandom') {
+                let fixedNumber = parseInt(mode.charAt(0));
+                for (let i = fixedNumber; i <= 10; i++) {
+                    let key = `${fixedNumber}+${i}`;
+                    problemSet.add(key);
+                }
+                for (let i = 0; i < fixedNumber; i++) {
+                    let key = `${i}+${fixedNumber}`;
+                    problemSet.add(key);
+                }
+            } else if (mode === 'allPossible') {
+                for (let i = 0; i <= 10; i++) {
+                    for (let j = i; j <= 10; j++) { // Ensure i <= j to eliminate duplicates
+                        let key = `${i}+${j}`;
+                        problemSet.add(key);
+                    }
+                }
+            }
+            // Convert problemSet to an array of problem objects
+            let problemsArray = Array.from(problemSet).map(key => {
+                let [num1, num2] = key.split('+').map(Number);
+                return { num1, num2, correctAnswer: num1 + num2 };
+            });
+            return shuffleArray(problemsArray);
+        }
+
+        function nextQuestion() {
+            if (currentProblemIndex >= problems.length) {
+                endGame();
+                return;
+            }
+
+            let problem = problems[currentProblemIndex];
+            let { num1, num2, correctAnswer } = problem;
+
+            questionElement.innerHTML = `
+                <div class="number">${num1}</div>
+                <div class="number">+ ${num2}</div>
+                <div class="line"></div>
+            `;
+
+            let answers = generateAnswers(correctAnswer);
+            answers = shuffleArray(answers);
+
+            answerButtons.forEach((button, index) => {
+                button.textContent = answers[index];
+                button.onclick = () => checkAnswer(button, correctAnswer);
+            });
+
+            questionStartTime = new Date();
+            updateProgressBar();
+            currentProblemIndex++;
+        }
+
+        function checkAnswer(button, correctAnswer) {
+            let timeTaken = (new Date() - questionStartTime) / 1000; // in seconds
+            totalTimeTaken += timeTaken;
+
+            let problem = problems[currentProblemIndex - 1];
+            problem.timeTaken = timeTaken;
+
+            if (parseInt(button.textContent) === correctAnswer) {
+                blinkScreen('green');
+                problem.isCorrect = true;
+            } else {
+                blinkScreen('red', true);
+                problem.isCorrect = false;
+                incorrectProblems.push(problem);
+            }
+            responseTimes.push(problem);
+
+            setTimeout(nextQuestion, 500);
+        }
+
+        function blinkScreen(color, isWrong = false) {
+            if (isWrong) {
+                messageElement.style.display = 'block';
+            }
+            document.body.style.backgroundColor = color;
+            setTimeout(() => {
+                document.body.style.backgroundColor = '';
+                messageElement.style.display = 'none';
+            }, 300);
+        }
+
+        function generateAnswers(correctAnswer) {
+            let answers = new Set();
+            answers.add(correctAnswer);
+            while (answers.size < 4) {
+                let wrongAnswer = Math.floor(Math.random() * 21); // Possible sums from 0 to 20
+                if (wrongAnswer !== correctAnswer) {
+                    answers.add(wrongAnswer);
+                }
+            }
+            return Array.from(answers);
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                let j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function endGame() {
+            gameArea.classList.add('hidden');
+            funnyGif.classList.remove('hidden');
+            timerElement.classList.remove('hidden');
+            slowestQuestionsElement.classList.remove('hidden');
+            mainMenuButton.classList.remove('hidden');
+            let endTime = new Date();
+            let totalTime = (endTime - startTime) / 1000; // in seconds
+            timerElement.textContent = `Game Over! You took ${Math.floor(totalTime)} seconds to answer ${problems.length} questions.`;
+
+            displayRandomGif();
+            displayResults();
+
+            mainMenuButton.onclick = () => {
+                mainMenuButton.classList.add('hidden');
+                modeSelection.classList.remove('hidden');
+                timerElement.classList.add('hidden');
+                slowestQuestionsElement.classList.add('hidden');
+                funnyGif.classList.add('hidden');
+                progressBar.style.width = '0%';
+                slowestQuestionsElement.innerHTML = '';
+                timerElement.textContent = '';
+            };
+        }
+
+        function displayResults() {
+            // Sort incorrect problems to the top
+            responseTimes.sort((a, b) => {
+                if (a.isCorrect === b.isCorrect) {
+                    return b.timeTaken - a.timeTaken;
+                }
+                return a.isCorrect ? 1 : -1;
+            });
+
+            let html = `<h2>Results:</h2><ol>`;
+            responseTimes.forEach(problem => {
+                let problemText = `${problem.num1} + ${problem.num2} = ${problem.correctAnswer} (Time: ${problem.timeTaken.toFixed(2)} seconds)`;
+                if (!problem.isCorrect) {
+                    html += `<li class="missed">${problemText}</li>`;
+                } else {
+                    html += `<li>${problemText}</li>`;
+                }
+            });
+            html += '</ol>';
+
+            slowestQuestionsElement.innerHTML = html;
+        }
+
+        function displayRandomGif() {
+            // Randomly select a GIF URL from the array
+            let randomIndex = Math.floor(Math.random() * funnyGifs.length);
+            let selectedGif = funnyGifs[randomIndex];
+            gifImage.src = selectedGif;
+        }
+
+        function updateProgressBar() {
+            let progress = (currentProblemIndex / problems.length) * 100;
+            progressBar.style.width = progress + '%';
+        }
+    </script>
+
+</body>
+</html>
