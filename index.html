@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Addition Game for Kids</title>
+    <!-- Viewport Meta Tag for Mobile Optimization -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         /* General Styles */
         body {
@@ -13,21 +15,24 @@
         }
         #startButton, .answerButton, .modeButton, #mainMenuButton {
             padding: 20px 40px;
-            font-size: 24px;
+            font-size: 28px; /* Increased font size */
             margin: 15px;
             cursor: pointer;
+            width: 80%; /* Increased width for better touch targets */
+            max-width: 300px;
         }
         #question {
             font-size: 72px;
             margin-top: 20px;
             line-height: 1.2;
         }
-        #timer, #slowestQuestions {
+        #timer, #scoreDisplay, #averageTimeDisplay, #slowestQuestions {
             font-size: 24px;
             margin-top: 20px;
-            text-align: left;
+            text-align: center;
             display: inline-block;
             max-width: 800px;
+            width: 90%;
         }
         .hidden {
             display: none;
@@ -42,6 +47,15 @@
         }
         #answers {
             margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .answerButton {
+            flex: 1 1 40%;
+            margin: 10px;
+            padding: 20px;
+            font-size: 32px;
         }
         #modeSelection {
             margin-top: 50px;
@@ -84,6 +98,27 @@
             max-width: 100%;
             height: auto;
         }
+        /* Style for the big, bold, underlined score */
+        .scoreNumber {
+            font-size: 72px;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        /* Responsive Text for iPad Mini */
+        @media (max-width: 1024px) {
+            #question {
+                font-size: 60px;
+            }
+            .answerButton {
+                font-size: 28px;
+            }
+            #message {
+                font-size: 60px;
+            }
+            .scoreNumber {
+                font-size: 60px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -92,7 +127,7 @@
 
     <div id="modeSelection">
         <h2>Select Game Mode:</h2>
-        <button class="modeButton" data-mode="15Random">15 Random Questions</button>
+        <button class="modeButton" data-mode="20Random">20 Random Questions</button>
         <button class="modeButton" data-mode="6sRandom">6's Random</button>
         <button class="modeButton" data-mode="7sRandom">7's Random</button>
         <button class="modeButton" data-mode="8sRandom">8's Random</button>
@@ -119,6 +154,8 @@
     </div>
 
     <div id="timer" class="hidden"></div>
+    <div id="averageTimeDisplay" class="hidden"></div> <!-- Average Time Display -->
+    <div id="scoreDisplay" class="hidden"></div> <!-- Score Display -->
     <div id="slowestQuestions" class="hidden"></div>
     <button id="mainMenuButton" class="hidden">Back to Main Menu</button>
     <div id="message">Try Again!</div>
@@ -129,6 +166,8 @@
         const questionElement = document.getElementById('question');
         const answerButtons = document.querySelectorAll('.answerButton');
         const timerElement = document.getElementById('timer');
+        const averageTimeDisplay = document.getElementById('averageTimeDisplay');
+        const scoreDisplay = document.getElementById('scoreDisplay');
         const slowestQuestionsElement = document.getElementById('slowestQuestions');
         const messageElement = document.getElementById('message');
         const modeSelection = document.getElementById('modeSelection');
@@ -163,6 +202,9 @@
             'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExdXltd3loYWl4ZG0wMmM0ZmJhaTlsc2ZhNmtuZWYycnljZGc1dDFzMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tVmthN5Mf8lGg/giphy.gif',
             'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOXRzc2Y5M3Fnb3djMmczbGo4ams1OXVnNGh1c2Yzd3V0N3d6YTBnYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/VIcgtjYlDLfkk/giphy.gif',
             'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExaGQ3ZHN4OHNrNTl2bGw4ZXJqd3Vtc3dubmc2eTg1Zmo2MWprcnR5ZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/KjqnOCVXbIkiA/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjIyNWhlNHFqOXV3Nm9hYm80YWc0dHJic3lnaG43ZXV1ajlsajc3NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/SS8OqIabH54afzLR40/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExcWd2N2hnN2d4b3kyN21vNDZtc2N1Nmg3dmZ1Y2ppcDF0OHN2enRydCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/YRVP7mapltn0XjStc9/giphy.gif',
+            'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExamU5dGRzYzN3aGN6NGhyazVnbXVzcGZ6OWM0NDl0OW00NzhkcjF1ZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/od5H3PmEG5EVq/giphy.gif',
             'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmRzb3JuYXNuMnpzc2tpYW45cTYwOWowbHJuYmhzODdmbDVpa3JwMCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9dg/Ml29MtdIRgWnoWgLbE/giphy.gif',
             // Add more GIF URLs here
         ];
@@ -180,6 +222,8 @@
         function startGame() {
             gameArea.classList.remove('hidden');
             timerElement.classList.add('hidden');
+            averageTimeDisplay.classList.add('hidden');
+            scoreDisplay.classList.add('hidden');
             slowestQuestionsElement.classList.add('hidden');
             mainMenuButton.classList.add('hidden');
             funnyGif.classList.add('hidden');
@@ -196,9 +240,9 @@
 
         function generateProblems(mode) {
             let problemSet = new Set();
-            if (mode === '15Random') {
-                // Generate 15 unique random problems with numbers from 0 to 10
-                while (problemSet.size < 15) {
+            if (mode === '20Random') {
+                // Generate 20 unique random problems with numbers from 0 to 10
+                while (problemSet.size < 20) {
                     let num1 = Math.floor(Math.random() * 11);
                     let num2 = Math.floor(Math.random() * 11);
                     let key = num1 <= num2 ? `${num1}+${num2}` : `${num2}+${num1}`;
@@ -313,26 +357,73 @@
             gameArea.classList.add('hidden');
             funnyGif.classList.remove('hidden');
             timerElement.classList.remove('hidden');
+            averageTimeDisplay.classList.remove('hidden');
+            scoreDisplay.classList.remove('hidden');
             slowestQuestionsElement.classList.remove('hidden');
             mainMenuButton.classList.remove('hidden');
             let endTime = new Date();
             let totalTime = (endTime - startTime) / 1000; // in seconds
+            let averageTimePerProblem = totalTime / problems.length;
+
             timerElement.textContent = `Game Over! You took ${Math.floor(totalTime)} seconds to answer ${problems.length} questions.`;
+
+            // Display the average solve time
+            let avgTimeRounded = averageTimePerProblem.toFixed(2);
+            averageTimeDisplay.textContent = `Average Solve Time: ${avgTimeRounded} seconds per problem.`;
+
+            let missedQuestions = incorrectProblems.length;
+
+            let score = calculateScore(averageTimePerProblem, missedQuestions);
+
+            // Display the score as a big, bold, underlined number
+            scoreDisplay.innerHTML = `<div class="scoreNumber">${Math.round(score)}</div>`;
 
             displayRandomGif();
             displayResults();
-
-            mainMenuButton.onclick = () => {
-                mainMenuButton.classList.add('hidden');
-                modeSelection.classList.remove('hidden');
-                timerElement.classList.add('hidden');
-                slowestQuestionsElement.classList.add('hidden');
-                funnyGif.classList.add('hidden');
-                progressBar.style.width = '0%';
-                slowestQuestionsElement.innerHTML = '';
-                timerElement.textContent = '';
-            };
         }
+
+        function calculateScore(averageTime, missedQuestions) {
+            let maxScore = 150;
+            let minScore = 0;
+            let fastestTime = 3; // seconds
+            let slowestTime = 12; // seconds
+
+            let score;
+
+            if (averageTime <= fastestTime) {
+                score = maxScore;
+            } else if (averageTime >= slowestTime) {
+                score = minScore;
+            } else {
+                // Linear interpolation between fastestTime and slowestTime
+                score = ((slowestTime - averageTime) / (slowestTime - fastestTime)) * (maxScore - minScore);
+            }
+
+            // Subtract 10 points for each missed question
+            score -= missedQuestions * 10;
+
+            // Ensure score is not less than minScore
+            if (score < minScore) {
+                score = minScore;
+            }
+
+            return score;
+        }
+
+        mainMenuButton.onclick = () => {
+            mainMenuButton.classList.add('hidden');
+            modeSelection.classList.remove('hidden');
+            timerElement.classList.add('hidden');
+            averageTimeDisplay.classList.add('hidden');
+            scoreDisplay.classList.add('hidden');
+            slowestQuestionsElement.classList.add('hidden');
+            funnyGif.classList.add('hidden');
+            progressBar.style.width = '0%';
+            slowestQuestionsElement.innerHTML = '';
+            timerElement.textContent = '';
+            averageTimeDisplay.textContent = '';
+            scoreDisplay.textContent = '';
+        };
 
         function displayResults() {
             // Sort incorrect problems to the top
